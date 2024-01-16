@@ -1,0 +1,254 @@
+[
+    {
+      "model": "wisrapp.categoria",
+      "pk": 1,
+      "fields": {
+        "nombre": "Salario",
+        "grupo": "Ingresos",
+        "tipo": "I"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 2,
+      "fields": {
+        "nombre": "Otros ingresos",
+        "grupo": "Ingresos",
+        "tipo": "I"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 3,
+      "fields": {
+        "nombre": "Hipoteca",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 4,
+      "fields": {
+        "nombre": "Supermercado",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 5,
+      "fields": {
+        "nombre": "Electricidad",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 6,
+      "fields": {
+        "nombre": "Agua",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 7,
+      "fields": {
+        "nombre": "Gas",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 8,
+      "fields": {
+        "nombre": "Internet",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 9,
+      "fields": {
+        "nombre": "Comunidad",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 10,
+      "fields": {
+        "nombre": "Seguros",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 11,
+      "fields": {
+        "nombre": "Limpieza",
+        "grupo": "Gastos básicos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 12,
+      "fields": {
+        "nombre": "Combustible",
+        "grupo": "Vehículo",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 13,
+      "fields": {
+        "nombre": "Préstamo coche",
+        "grupo": "Vehículo",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 14,
+      "fields": {
+        "nombre": "Mantenimiento coche",
+        "grupo": "Vehículo",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 15,
+      "fields": {
+        "nombre": "Seguro coche",
+        "grupo": "Vehículo",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 16,
+      "fields": {
+        "nombre": "Ropa",
+        "grupo": "Gastos necesarios",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 17,
+      "fields": {
+        "nombre": "Hogar",
+        "grupo": "Gastos necesarios",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 18,
+      "fields": {
+        "nombre": "Servicios digitales",
+        "grupo": "Gastos necesarios",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 19,
+      "fields": {
+        "nombre": "Bares",
+        "grupo": "Ocio",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 20,
+      "fields": {
+        "nombre": "Ocio",
+        "grupo": "Ocio",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 21,
+      "fields": {
+        "nombre": "Viajes",
+        "grupo": "Ocio",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 22,
+      "fields": {
+        "nombre": "Personal",
+        "grupo": "Personal",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 23,
+      "fields": {
+        "nombre": "Pilar",
+        "grupo": "Personal",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 24,
+      "fields": {
+          "nombre": "Salud",
+          "grupo": "Salud",
+          "tipo": "G"
+        }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 25,
+      "fields": {
+        "nombre": "Regalos",
+        "grupo": "Regalos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 26,
+      "fields": {
+        "nombre": "Donativos",
+        "grupo": "Donativos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 27,
+      "fields": {
+        "nombre": "Impuestos",
+        "grupo": "Impuestos",
+        "tipo": "G"
+      }
+    },
+    {
+      "model": "wisrapp.categoria",
+      "pk": 28,
+      "fields": {
+        "nombre": "Otros gastos",
+        "grupo": "Otros gastos",
+        "tipo": "G"
+      }
+    }
+]

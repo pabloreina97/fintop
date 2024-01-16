@@ -1,5 +1,5 @@
 from datetime import datetime
-from wisrapp.models import Transaccion
+from wisrapp.models import Transaction
 
 
 def crear_transacciones_futuras(transaccion_programada):
@@ -11,7 +11,7 @@ def crear_transacciones_futuras(transaccion_programada):
         final = datetime(datetime.now().year, 12, 31)
 
     while fecha_actual <= final:
-        Transaccion.objects.create(
+        Transaction.objects.create(
             fecha=fecha_actual,
             cantidad=transaccion_programada.cantidad,
             categoria=transaccion_programada.categoria,
@@ -21,5 +21,5 @@ def crear_transacciones_futuras(transaccion_programada):
 
 
 def eliminar_transacciones_futuras(transaccion_programada):
-    Transaccion.objects.filter(
+    Transaction.objects.filter(
         transaccion_programada=transaccion_programada, realizada=False).delete()

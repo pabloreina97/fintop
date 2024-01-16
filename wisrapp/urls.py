@@ -5,10 +5,16 @@ from . import views
 router = routers.DefaultRouter()
 router.register(r'categorias', views.CategoriaViewSet)
 router.register(r'transacciones', views.TransaccionViewSet)
-router.register(r'transaccionesprog', views.TransaccionProgramadaViewSet)
 
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('totales/', views.TotalesView.as_view(), name='totales'),
+    path('auth_truelayer/', views.AuthTruelayer.as_view(), name='auth_truelayer'),
+    path('auth_refresh/', views.AuthRefresh.as_view(), name='auth_refresh'),
+    path('redirect_truelayer/', views.RedirectTruelayer.as_view(),
+         name='redirect_truelayer'),
+    path('get_transacciones/', views.GetTransaccionesView.as_view(),
+         name='get_transacciones'),
+    path('sincronizar_transacciones/', views.SincronizarTransaccionesView.as_view(),
+         name='sincronizar_transacciones'),
 ]

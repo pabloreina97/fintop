@@ -5,9 +5,13 @@ from django.utils import timezone
 
 
 class Categoria(models.Model):
+    OPCIONES_TIPO_TRANSACCION = (
+        ('I', 'Ingreso'),
+        ('G', 'Gasto')
+    )
     nombre = models.CharField(max_length=255)
     grupo = models.CharField(max_length=255)
-    tipo = models.CharField(max_length=255)
+    tipo = models.CharField(max_length=1, choices=OPCIONES_TIPO_TRANSACCION)
 
     def __str__(self):
         return self.nombre
@@ -17,103 +21,32 @@ class Categoria(models.Model):
         verbose_name_plural = 'categorías'
 
 
-class Transaccion(models.Model):
-    OPCIONES_TIPO_TRANSACCION = (
-        ('I', 'Ingreso'),
-        ('G', 'Gasto')
-    )
-
-    tipo_transaccion = models.CharField(
-        max_length=1, choices=OPCIONES_TIPO_TRANSACCION)
-    fecha = models.DateTimeField()
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
-    descripcion = models.CharField(max_length=255, blank=True, null=True)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
-    realizada = models.BooleanField(default=True)
-    validada = models.BooleanField(default=True)
-    is_programada = models.BooleanField(default=False)
-    programada = models.ForeignKey(
-        'TransaccionProgramada',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
+class Transaction(models.Model):
+    transaction_id = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    description = models.CharField(max_length=100)
+    merchant_name = models.CharField(max_length=100, null=True, blank=True)
+    currency = models.CharField(max_length=100)
+    transaction_type = models.CharField(max_length=100)
+    transaction_category = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(max_length=100)
+    # Campos meta
+    counter_party_preferred_name = models.CharField(
+        max_length=100, null=True, blank=True)
+    provider_category = models.CharField(max_length=100)
+    provider_reference = models.CharField(max_length=100)
+    # Campos añadidos
+    categoria = models.ForeignKey(
+        Categoria, on_delete=models.SET_NULL, null=True, blank=True)
+    computable = models.BooleanField(default=True)
 
     def __str__(self):
-        return f'{self.descripcion} ({self.tipo_transaccion})'
+        return self.description
 
     class Meta:
         verbose_name = 'transacción'
         verbose_name_plural = 'transacciones'
-
-
-class TransaccionProgramada(models.Model):
-
-    OPCIONES_FRECUENCIA = (
-        ('S', 'Semanal'),
-        ('M', 'Mensual'),
-    )
-
-    OPCIONES_TIPO_TRANSACCION = (
-        ('I', 'Ingreso'),
-        ('G', 'Gasto')
-    )
-
-    tipo_transaccion = models.CharField(
-        max_length=1, choices=OPCIONES_TIPO_TRANSACCION)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
-    descripcion = models.CharField(max_length=255, blank=True, null=True)
-    inicio = models.DateTimeField()
-    final = models.DateTimeField(blank=True, null=True)
-    frecuencia = models.CharField(
-        max_length=1, choices=OPCIONES_FRECUENCIA)
-
-    def __str__(self):
-        return f'{self.cantidad}, {self.frecuencia} ({self.categoria})'
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        fecha_actual = self.inicio
-        if self.final is None:
-            # Si no hay fecha de finalización, creamos transacciones para el año en curso
-            self.final = timezone.make_aware(datetime.combine(
-                datetime(datetime.now().year, 12, 31), datetime.min.time()))
-
-        while fecha_actual <= self.final:
-            Transaccion.objects.create(
-                tipo_transaccion=self.tipo_transaccion,
-                fecha=fecha_actual,
-                categoria=self.categoria,
-                descripcion=f'{self.descripcion} (generada automáticamente)',
-                cantidad=self.cantidad,
-                realizada=False,
-                validada=True,
-                is_programada=True,
-                programada=self
-            )
-
-            if self.frecuencia == 'S':
-                fecha_actual += timedelta(days=7)
-            elif self.frecuencia == 'M':
-                fecha_actual += relativedelta(months=1)
-
-    # def delete(self, *args, **kwargs):
-    #     # obtener todas las transacciones relacionadas no realizadas
-    #     transacciones_no_realizadas = Transaccion.objects.filter(
-    #         programada_id=self.id, realizada=False)
-
-    #     # borrar todas las transacciones no realizadas
-    #     transacciones_no_realizadas.delete()
-
-    #     # llamar al delete original para borrar la transacción programada
-    #     super().delete(*args, **kwargs)
-
-    class Meta:
-        verbose_name = 'transacción programada'
-        verbose_name_plural = 'transacciones programadas'
+        ordering = ['-timestamp']
 
 
 class Presupuesto(models.Model):
@@ -128,6 +61,27 @@ class Presupuesto(models.Model):
     class Meta:
         verbose_name = 'presupuesto'
         verbose_name_plural = 'presupuestos'
+
+
+class UserToken(models.Model):
+    user_id = models.PositiveSmallIntegerField(default=1)
+    access_token = models.TextField()
+    refresh_token = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+
+class SyncHistory(models.Model):
+    sync_datetime = models.DateTimeField(auto_now_add=True)
+    new_rows = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'sincronización'
+        verbose_name_plural = 'sincronizaciones'
+        ordering = ['-sync_datetime']
 
 
 """

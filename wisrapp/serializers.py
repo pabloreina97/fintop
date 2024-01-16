@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Categoria, Transaccion, TransaccionProgramada
+from .models import Categoria, SyncHistory, Transaction, UserToken
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -8,22 +8,40 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ('id', 'nombre', 'grupo', 'tipo')
 
 
-class TransaccionSerializer(serializers.ModelSerializer):
+class MetaTransactionSerializer(serializers.Serializer):
+    counter_party_preferred_name = serializers.CharField(
+        required=False)
+    provider_category = serializers.CharField()
+    provider_reference = serializers.CharField()
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    meta = MetaTransactionSerializer(
+        source='*')
 
     class Meta:
-        model = Transaccion
-        fields = ('id', 'tipo_transaccion', 'categoria', 'categoria_nombre', 'fecha',
-                  'descripcion', 'cantidad', 'created_at', 'realizada', 'validada',
-                  'is_programada', 'programada')
+        model = Transaction
+        fields = [
+            'transaction_id',
+            'amount',
+            'description',
+            'merchant_name',
+            'currency',
+            'transaction_type',
+            'transaction_category',
+            'timestamp',
+            'meta',
+            'categoria'
+        ]
 
-    categoria_nombre = serializers.SerializerMethodField()
 
-    def get_categoria_nombre(self, obj):
-        return obj.categoria.nombre
-
-
-class TransaccionProgramadaSerializer(serializers.ModelSerializer):
+class UserTokenSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TransaccionProgramada
-        fields = ['id', 'cantidad', 'categoria',
-                  'inicio', 'final', 'frecuencia']
+        model = UserToken
+        fields = '__all__'
+
+
+class SyncHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SyncHistory
+        fields = '__all__'
