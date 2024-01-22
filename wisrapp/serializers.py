@@ -31,7 +31,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             'transaction_category',
             'timestamp',
             'meta',
-            'categoria'
+            'categoria',
+            'computable'
         ]
 
 
