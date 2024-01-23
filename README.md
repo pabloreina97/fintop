@@ -111,3 +111,4 @@ Asegurarse de que tenemos una regla de seguridad para conexiones HTTP al puerto 
 - Revisar que está configurado correctamente la configuración de `nginx`.
 - Haber hecho `python manage.py collectstatic` y que estén los archivos estáticos en STATIC_ROOT.
 - Revisar logs en `/var/log/nginx/error.log`.
+- Si es problema de permisos, revisar que el usuario de `nginx` tenga acceso a la carpeta de los estáticos y a sus directorios padres.
