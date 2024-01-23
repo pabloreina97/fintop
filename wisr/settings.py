@@ -31,7 +31,7 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'ec2-13-38-95-163.eu-west-3.compute.amazonaws.com', '127.0.0.1']
+    'ec2-13-38-95-163.eu-west-3.compute.amazonaws.com', '13.38.95.163', '127.0.0.1']
 
 
 # Application definition
