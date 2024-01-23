@@ -15,6 +15,8 @@ urlpatterns = [
          name='redirect_truelayer'),
     path('get_transacciones/', views.GetTransaccionesView.as_view(),
          name='get_transacciones'),
+    path('get_accounts/', views.GetAccountsView.as_view(),
+         name='get_accounts'),
     path('sincronizar_transacciones/', views.SincronizarTransaccionesView.as_view(),
          name='sincronizar_transacciones'),
 ]

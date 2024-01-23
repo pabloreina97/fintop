@@ -80,8 +80,6 @@ class AuthRefresh(APIView):
         old_access_token = user_token.access_token
         refresh_token = user_token.refresh_token
 
-        print(refresh_token)
-
         response = requests.post(
             'https://auth.truelayer.com/connect/token',
             data={
@@ -91,7 +89,6 @@ class AuthRefresh(APIView):
                 'refresh_token': refresh_token
             }
         )
-        print(response)
         if response.status_code == 200:
 
             access_token = response.json().get('access_token')
@@ -107,92 +104,144 @@ class AuthRefresh(APIView):
                              'status': response.status_code})
 
 
+class GetAccountsView(APIView):
+    def get(self, request, *args, **kwargs):
+        # Obtener el token de acceso más reciente de la base de datos
+        user_token = UserToken.objects.first()
+        access_token = user_token.access_token
+
+        # Hacer la petición a la API de TrueLayer
+        api_url = f'https://api.truelayer.com/data/v1/accounts/'
+        headers = {'Authorization': f'Bearer {access_token}'}
+
+        try:
+            response = requests.get(api_url, headers=headers)
+
+            if response.status_code == 200:
+                json_data = response.json().get('results')
+                return Response(json_data)
+            else:
+                return Response({'error': 'Error al obtener las cuentas'}, status=response.status_code)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+
 class GetTransaccionesView(APIView):
     def get(self, request, *args, **kwargs):
         # Obtener el token de acceso más reciente de la base de datos
-        # user = request.user  # Supongo que estás autenticando al usuario de alguna manera
         user_token = UserToken.objects.first()
         access_token = user_token.access_token
-        account_id = '4ec4578ab0b06c3c431f0580e39969d5'
+        accounts = ['4ec4578ab0b06c3c431f0580e39969d5',
+                    'c6b6408a31b67b058d8f4c7af0398f40']
 
-        # Hacer la petición a la API de TrueLayer
-        api_url = f'https://api.truelayer.com/data/v1/accounts/{account_id}/transactions?from={from_date}&to={to_date}'
-        headers = {'Authorization': f'Bearer {access_token}'}
-
-        try:
-            response = requests.get(api_url, headers=headers)
-
-            if response.status_code == 200:
-                transacciones_json = response.json().get('results')
-                return Response(transacciones_json)
-            else:
-                return Response({'error': 'Error al obtener transacciones'}, status=response.status_code)
-        except Exception as e:
-            return Response({'error': str(e)}, status=500)
-
-
-class SincronizarTransaccionesView(APIView):
-    new_rows = 0
-
-    def get(self, request, *args, **kwargs):
-        self.sincronizar_transacciones()
-        return Response({'status': f'Transacciones sincronizadas correctamente. Se han añadido {self.counter} nuevas transacciones'})
-
-    def sincronizar_transacciones(self):
-        # Obtener el token de acceso más reciente de la base de datos
-        user_token = UserToken.objects.first()
-        access_token = user_token.access_token
-        account_id = '4ec4578ab0b06c3c431f0580e39969d5'
-
-        # Registrar fechas de sincronizacion
-        last_sync = SyncHistory.objects.first().sync_datetime if SyncHistory.objects.first(
-        ) else datetime(year=2024, month=1, day=4)
-        # from_date = datetime(year=2024, month=1, day=1).strftime(r'%Y-%m-%d')
-        from_date = (last_sync + timedelta(days=-3)).strftime(r'%Y-%m-%d')
+        # Fechas de sincronizacion
+        last_sync = SyncHistory.objects.first(
+        ).sync_datetime if SyncHistory.objects.first() else None
+        from_date = ((last_sync + timedelta(days=-3))
+                     if last_sync else datetime(year=2024, month=1, day=1)).strftime(r'%Y-%m-%d')
         to_date = datetime.today().strftime(r'%Y-%m-%d')
         print(f'from {from_date} to {to_date}')
 
+        # Inicializar lista para almacenar todas las transacciones
+        all_transactions = []
+
         # Hacer la petición a la API de TrueLayer
-        api_url = f'https://api.truelayer.com/data/v1/accounts/{account_id}/transactions?from={from_date}&to={to_date}'
-        headers = {'Authorization': f'Bearer {access_token}'}
+        for account_id in accounts:
+            api_url = f'https://api.truelayer.com/data/v1/accounts/{account_id}/transactions?from={from_date}&to={to_date}'
+            headers = {'Authorization': f'Bearer {access_token}'}
 
-        try:
-            response = requests.get(api_url, headers=headers)
+            try:
+                response = requests.get(api_url, headers=headers)
 
-            if response.status_code == 200:
-                transacciones_json = response.json().get('results')
-                for transaccion in transacciones_json:
-                    print(transaccion)
-                    print(type(transaccion))
-                    self.procesar_transaccion(transaccion)
-                serializer = SyncHistorySerializer(
-                    data={'new_rows': self.new_rows})
-                if serializer.is_valid():
-                    serializer.save()
+                if response.status_code == 200:
+                    transacciones_json = response.json().get('results')
+                    all_transactions.extend(transacciones_json)
                 else:
-                    return Response({'status': f'Transacciones sincronizadas correctamente. Se han añadido {self.new_rows} nuevas transacciones. WARNING: No se ha podido registrar la fecha de sincronización.'})
-                return Response({'status': f'Transacciones sincronizadas correctamente. Se han añadido {self.new_rows} nuevas transacciones'})
-            else:
-                return Response({'error': 'Error al obtener transacciones'}, status=response.status_code)
-        except Exception as e:
-            return Response({'error': str(e)}, status=500)
+                    return Response({'error': 'Error al obtener transacciones de alguna de las cuentas'}, status=response.status_code)
+            except Exception as e:
+                return Response({'error': str(e)}, status=500)
+
+        return Response(all_transactions)
+
+
+class SincronizarTransaccionesView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        new_rows, error = self.sincronizar_transacciones()
+        if error:
+            return Response({'error': error}, status=500)
+        return Response({'status': f'Transacciones sincronizadas correctamente. Se han añadido {new_rows} nuevas transacciones'})
+
+    def sincronizar_transacciones(self):
+        new_rows = 0
+
+        # Obtener el token de acceso más reciente de la base de datos
+        user_token = UserToken.objects.first()
+        access_token = user_token.access_token
+        accounts = ['4ec4578ab0b06c3c431f0580e39969d5',
+                    'c6b6408a31b67b058d8f4c7af0398f40']
+
+        # Fechas de sincronizacion
+        last_sync = SyncHistory.objects.first(
+        ).sync_datetime if SyncHistory.objects.first() else None
+        from_date = ((last_sync + timedelta(days=-3))
+                     if last_sync else datetime(year=2024, month=1, day=1)).strftime(r'%Y-%m-%d')
+        to_date = datetime.today().strftime(r'%Y-%m-%d')
+        print(f'from {from_date} to {to_date}')
+
+        # Hacer la petición a la API de TrueLayer para sincronizar las transacciones
+        for account_id in accounts:
+            api_url = f'https://api.truelayer.com/data/v1/accounts/{account_id}/transactions?from={from_date}&to={to_date}'
+            headers = {'Authorization': f'Bearer {access_token}'}
+
+            try:
+                response = requests.get(api_url, headers=headers)
+
+                if response.status_code == 200:
+                    transacciones_json = response.json().get('results')
+                    for transaccion in transacciones_json:
+                        added = self.procesar_transaccion(transaccion)
+                        if added:
+                            new_rows += 1
+                else:
+                    return new_rows, f"Error: {response.status_code}. Ha ocurrido un error al importar las transacciones de TrueLayer. Revisa el código de error."
+            except Exception as e:
+                return new_rows, str(e)
+
+        # Guardar historial de sincronización
+        sync_serializer = SyncHistorySerializer(
+            data={'new_rows': new_rows})
+        if sync_serializer.is_valid():
+            sync_serializer.save()
+            return new_rows, None
+        else:
+            return new_rows, "Error en la validación del serializer para el historial de sincronización."
 
     def procesar_transaccion(self, transaccion):
         serializer = TransactionSerializer(data=transaccion)
         if serializer.is_valid():
             # Verificar si la transacción ya existe
             transaction_id = serializer.validated_data.get('transaction_id')
+            # TODO: Esto se puede hacer más eficiente:
             if not Transaction.objects.filter(transaction_id=transaction_id).exists():
                 transaccion = serializer.save()
-                transaccion.categoria = self.asignar_categoria(transaccion)
+                categoria = self.asignar_categoria(transaccion)
+                transaccion.categoria = categoria
                 transaccion.save()
-                self.new_rows += 1
+                return True
+            return False
         else:
             # Manejar datos inválidos
             print(
                 f'Error en función "procesar_transaccion": {serializer.errors}')
+            return False
 
     def asignar_categoria(self, transaccion):
+        # Cargar todas las categorías una vez al inicio del método para evitar múltiples consultas a la BD.
+        all_categorias = Categoria.objects.all()
+        categorias_dict = {
+            categoria.nombre: categoria for categoria in all_categorias}
+
         descripcion = transaccion.description.upper()
         importe = transaccion.amount
         print(type(importe))
@@ -202,18 +251,18 @@ class SincronizarTransaccionesView(APIView):
         if 'PAGO' in descripcion:
             # Descripción > Importe
             if importe == -116.42:
-                return Categoria.objects.get(nombre='Comunidad')
+                return categorias_dict.get('Comunidad')
             elif importe == -20 | -50:
-                return Categoria.objects.get(nombre='Donativos')
+                return categorias_dict.get('Donativos')
             elif importe == -56.28:
-                return Categoria.objects.get(nombre='Seguro coche')
+                return categorias_dict.get('Seguro coche')
 
         # Destinatario
         if destinatario:
             if 'CARITAS' in destinatario:
-                return Categoria.objects.get(nombre='Donativos')
+                return categorias_dict.get('Donativos')
             elif 'NORTEHISPANA' in destinatario:
-                return Categoria.objects.get(nombre='Seguros')
+                return categorias_dict.get('Seguros')
 
         # Descripción
         categorias = {
@@ -239,12 +288,12 @@ class SincronizarTransaccionesView(APIView):
 
         for categoria, palabras_clave in categorias.items():
             if any(palabra in descripcion for palabra in palabras_clave):
-                return Categoria.objects.get(nombre=categoria)
+                return categorias_dict.get(categoria)
 
         if importe > 0:
             if importe > 800:
-                return Categoria.objects.get(nombre='Salario')
+                return categorias_dict.get('Salario')
             else:
-                return Categoria.objects.get(nombre='Otros ingresos')
+                return categorias_dict.get('Otros ingresos')
 
         return None
