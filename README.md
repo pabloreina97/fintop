@@ -4,6 +4,18 @@
 
 ## Introducción
 
+## Configuración de AWS
+
+1. Crear instancia de EC2. Automáticamente se le asocia un volumen EBS que permite instalar una base de datos
+2. Instalar postgresql (https://hbayraktar.medium.com/how-to-install-postgresql-15-on-amazon-linux-2023-a-step-by-step-guide-57eebb7ad9fc)
+3. Crear una base de datos y un usuario. Otorgarle los permisos
+4. Modificar el hba_conf para permitir todas las conexiones locales.
+5. Instalar python en la versión deseada, junto con todas las librerías necesarias.
+6. Si se instala psycopg2, instalar mejor psycopg2-binary porque la otra versión dice que necesita pg_config y no lo encuentra.
+7. Instalar git.
+8. Crear claves ssh y asociarlas a github.
+9. Clonar repositorio.
+
 ## Configuración de Gunicorn
 
 En primer lugar, hay que instalar `gunicorn` en el entorno virtual de la aplicación.
@@ -73,7 +85,7 @@ server {
 
     location = /favicon.ico { access_log off; log_not_found off; }
     location /static/ {
-        root /ruta/a/tu/directorio/de/estaticos;
+        alias /home/ec2-user/fintop/staticfiles/;
     }
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -86,4 +98,16 @@ server {
 ```
 Se ejecuta el comando `sudo nginx -t` y `sudo systemctl restart nginx` y ya automáticamente redirige del puerto 80 al 8000.
 
-Por último, hay que asegurarse de que tenemos una regla de seguridad para conexiones HTTP al puerto 80 en AWS.
+Por último, hay que 
+
+### Resolución de problemas
+
+#### 1. No se obtiene respuesta del servidor en el navegador.
+
+Asegurarse de que tenemos una regla de seguridad para conexiones HTTP al puerto 80 en AWS.
+
+#### 2. No se ven los archivos estáticos.
+
+- Revisar que está configurado correctamente la configuración de `nginx`.
+- Haber hecho `python manage.py collectstatic` y que estén los archivos estáticos en STATIC_ROOT.
+- Revisar logs en `/var/log/nginx/error.log`.
