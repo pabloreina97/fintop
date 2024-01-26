@@ -126,7 +126,7 @@ class GetAccountsView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
-class GetTransaccionesView(APIView):
+class GetTransactionsView(APIView):
     def get(self, request, *args, **kwargs):
         # Obtener el token de acceso más reciente de la base de datos
         user_token = UserToken.objects.first()
@@ -164,7 +164,7 @@ class GetTransaccionesView(APIView):
         return Response(all_transactions)
 
 
-class SincronizarTransaccionesView(APIView):
+class SyncTransactionsView(APIView):
 
     def get(self, request, *args, **kwargs):
         new_rows, error = self.sincronizar_transacciones()

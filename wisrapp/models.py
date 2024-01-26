@@ -1,7 +1,4 @@
 from django.db import models
-from datetime import timedelta, datetime
-from dateutil.relativedelta import relativedelta
-from django.utils import timezone
 
 
 class Categoria(models.Model):

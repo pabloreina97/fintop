@@ -6,13 +6,102 @@
 
 ## Configuración de AWS
 
-1. Crear instancia de EC2. Automáticamente se le asocia un volumen EBS que permite instalar una base de datos
-2. Instalar postgresql (https://hbayraktar.medium.com/how-to-install-postgresql-15-on-amazon-linux-2023-a-step-by-step-guide-57eebb7ad9fc)
-3. Crear una base de datos y un usuario. Otorgarle los permisos
-4. Modificar el hba_conf para permitir todas las conexiones locales.
-5. Instalar python en la versión deseada, junto con todas las librerías necesarias.
-6. Si se instala psycopg2, instalar mejor psycopg2-binary porque la otra versión dice que necesita pg_config y no lo encuentra.
-7. Instalar git.
+### Crear instancia de EC2. Automáticamente se le asocia un volumen EBS que permite instalar una base de datos.
+
+### Instalar Python 3.11.
+
+La instancia de EC2 con AL 2023 viene por defecto con Python 3.9. Para instalar Python 3.11 o una versión superior, instalar `pyenv`.
+
+Instalar las dependencias necesarias para construir diferentes versiones de Python:
+
+```
+sudo yum install -y gcc zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel
+```
+Instalar Git
+```
+sudo yum install git
+```
+
+Instalar pyenv mediante curl o wget:
+
+```
+curl https://pyenv.run | bash
+```
+Configurar el entorno añadiendo pyenv al PATH:
+
+```
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init --path)"' >> ~/.bashrc
+echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+```
+
+Luego aplicar los cambios:
+
+```
+source ~/.bashrc
+```
+
+Ahora se puede usar `pyenv` para instalar Python 3.11 y establecer como la predeterminada para el usuario. Se puede comprobar con python3 --version:
+
+```
+pyenv install 3.11.x
+pyenv global 3.11.x
+python3 --version
+```
+
+
+### Instalar PostgreSQL
+
+https://hbayraktar.medium.com/how-to-install-postgresql-15-on-amazon-linux-2023-a-step-by-step-guide-57eebb7ad9fc
+
+Instalar tanto el cliente como el servidor de PostgreSQL:
+
+```
+sudo dnf update
+sudo dnf install postgresql15.x86_64 postgresql15-server -y
+```
+Iniciarlizar la BD:
+
+```
+sudo postgresql-setup --initdb
+```
+
+Habilitar el servicio de PostgreSQL en `systemctl` para que se ejecute al arrancar automáticamente.
+```
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+sudo systemctl status postgresql
+```
+Por seguridad, usar una buena contraseña para el admin (B*****um$.):
+```
+# Change the ssh user password:
+sudo passwd postgres
+
+# Log in using the Postgres system account:
+su - postgres
+
+# Now, change the admin database password:
+psql -c "ALTER USER postgres WITH PASSWORD 'your-password';"
+exit
+```
+Accede al archivo de configuración `/var/lib/pgsql/data/postgresql.conf` y hazle una copia:
+
+```
+sudo cp /var/lib/pgsql/data/postgresql.conf /var/lib/pgsql/data/postgresql.conf.bck
+```
+Y luego modifica `listen_adresses = 'localhost'` a `'*'` si se quiere permitir que cualquiera pueda acceder a la base de datos.
+
+Luego se modifica el archivo de configuración `/var/lib/pgsql/data/pg_hba.conf` despues de hacerle una copia:
+```
+sudo cp /var/lib/pgsql/data/pg_hba.conf /var/lib/pgsql/data/pg_hba.conf.bck
+```
+Se cambia la identidad a *md5* para permitir conexiones.
+Finalmente se reinicia el servicio para aplicar los cambios:
+```
+sudo systemctl restart postgresql
+```
+7. Si se instala psycopg2, instalar mejor psycopg2-binary porque la otra versión dice que necesita pg_config y no lo encuentra.
 8. Crear claves ssh y asociarlas a github.
 9. Clonar repositorio.
 
