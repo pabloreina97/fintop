@@ -6,6 +6,11 @@ from django.shortcuts import redirect
 from .models import Categoria, SyncHistory, Transaction, UserToken
 
 
+def no_computable(modeladmin, request, queryset):
+    queryset.update(computable=False)
+    no_computable.short_description = "Marcar seleccionados como no computable"
+
+
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
     list_display = ('id', 'nombre', 'grupo')
@@ -13,7 +18,9 @@ class CategoriaAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransaccionAdmin(admin.ModelAdmin):
-    list_display = ('description', 'amount', 'categoria', 'timestamp')
+    list_display = ('description', 'amount', 'categoria',
+                    'timestamp', 'computable')
+    actions = [no_computable]
 
 
 @admin.register(UserToken)

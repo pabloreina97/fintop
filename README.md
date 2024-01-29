@@ -96,7 +96,7 @@ Luego se modifica el archivo de configuración `/var/lib/pgsql/data/pg_hba.conf`
 ```
 sudo cp /var/lib/pgsql/data/pg_hba.conf /var/lib/pgsql/data/pg_hba.conf.bck
 ```
-Se cambia la identidad a *md5* para permitir conexiones.
+Se cambia la identidad a *md5* para permitir conexiones. Si se ha creado un usuario específico para la DB de Django, *otorgarle los permisos necesarios*.
 Finalmente se reinicia el servicio para aplicar los cambios:
 ```
 sudo systemctl restart postgresql
@@ -118,36 +118,42 @@ pythonpath = '/home/ec2-user/fintop'
 bind = '0.0.0.0:8000'
 workers = 3
 ```
-Luego, se instala supervisor en el entorno global. Este programa ejecuta automáticamente los comandos que se hayan especificado al iniciar la instancia. Por eso hay que instalarlo en el entorno global de la instancia EC2.
-
-En la ruta /etc/supervisor/conf.d/ hay que crear el archivo gunicorn.conf:
-```
-[program:gunicorn]
-command=/home/ec2-user/fintop/.venv/bin/gunicorn -c /home/ec2-user/fintop/gunicorn_config.py wisr.wsgi:application
-directory=/home/ec2-user/fintop
-user=ec2-user
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/gunicorn/gunicorn_stdout.log
-stderr_logfile=/var/log/gunicorn/gunicorn_stderr.log
-
-[group:guni]
-programs:gunicorn
-```
-e incluirlo en la configuración global de supervisor, en etc/supervisor/supervisord.conf:
+Se crea el servicio en `systemctl` para gunicorn con `sudo nano /etc/systemd/system/gunicorn.service` y se le añade la configuración, que puede ser algo así:
 
 ```
-...
-[include]
-files = /etc/supervisor/conf.d/*.conf
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/fintop
+ExecStart=/home/ec2-user/fintop/.venv/bin/gunicorn -c /home/ec2-user/fintop/gunicorn_config.py wisr.wsgi:application
+Restart=always
+StandardOutput=file:/var/log/gunicorn/gunicorn_stdout.log
+StandardError=file:/var/log/gunicorn/gunicorn_stderr.log
+
+[Install]
+WantedBy=multi-user.target
 ```
-Cada vez que se modifique ese archivo, hay que ejecutar:
+
+No olvidar crear las carpetas y archivos de los logs.
+
+Para releer el archivo de configuración:
 ```
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl restart all
+sudo systemctl daemon-reload
 ```
-Para comprobar el estado se ejecuta `supervisorctl status`
+Para habilitar el servicio para que se inicie automáticamente en el arranque:
+```
+sudo systemctl enable gunicorn.service
+```
+Para arrancar el servicio en el momento actual:
+```
+sudo systemctl start gunicorn.service
+```
+Y cuando se hagan cambios en el proyecto de django, utilizar `sudo systemctl restart gunicorn.service`.
+Para comprobar el estado se ejecuta `sudo systemctl status gunicorn.service`
 
 ## Configuración de Nginx
 
@@ -170,7 +176,7 @@ Se crea un archivo de configuración de nginx en /etc/nginx/conf.d/fintop.conf. 
 ```
 server {
     listen 80;
-    server_name ec2-13-38-95-163.eu-west-3.compute.amazonaws.com;
+    server_name ec2-51-44-13-202.eu-west-3.compute.amazonaws.com;
 
     location = /favicon.ico { access_log off; log_not_found off; }
     location /static/ {
@@ -200,4 +206,4 @@ Asegurarse de que tenemos una regla de seguridad para conexiones HTTP al puerto 
 - Revisar que está configurado correctamente la configuración de `nginx`.
 - Haber hecho `python manage.py collectstatic` y que estén los archivos estáticos en STATIC_ROOT.
 - Revisar logs en `/var/log/nginx/error.log`.
-- Si es problema de permisos, revisar que el usuario de `nginx` tenga acceso a la carpeta de los estáticos y a sus directorios padres.
+- Si es problema de permisos, revisar que el usuario de `nginx` tenga acceso a la carpeta de los estáticos y a sus directorios padres. Lo normal es que la carpeta del usuario ec2-user esté restringida y haya que darle acceso a nginx con `chmod 755 ec2-user/`.
