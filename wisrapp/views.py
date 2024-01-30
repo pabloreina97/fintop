@@ -248,7 +248,7 @@ class SyncTransactionsView(APIView):
         destinatario = transaccion.merchant_name.upper() if transaccion.merchant_name else (
             transaccion.counter_party_preferred_name.upper() if transaccion.counter_party_preferred_name else None)
 
-        if 'PAGO' in descripcion:
+        if 'PAGO' in descripcion:  # TODO: Esto no esta funcionando bien
             # Descripción > Importe
             if importe == -116.42:
                 return categorias_dict.get('Comunidad')

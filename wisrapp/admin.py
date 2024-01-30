@@ -21,6 +21,7 @@ class TransaccionAdmin(admin.ModelAdmin):
     list_display = ('description', 'amount', 'categoria',
                     'timestamp', 'computable')
     actions = [no_computable]
+    list_filter = ['computable', 'categoria']
 
 
 @admin.register(UserToken)
