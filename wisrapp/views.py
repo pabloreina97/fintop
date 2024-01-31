@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
-
+from decimal import Decimal
 from .models import Categoria, SyncHistory, Transaction, UserToken
 from .serializers import CategoriaSerializer, SyncHistorySerializer, TransactionSerializer
 from django.db.models import Sum
@@ -30,8 +30,8 @@ class TransaccionViewSet(viewsets.ModelViewSet):
         transaccion_original = self.get_object()
         divisiones = request.data.get('divisiones')
 
-        cantidad_total_divisiones = sum(
-            division['amount'] for division in divisiones)
+        cantidad_total_divisiones = Decimal(sum(
+            division['amount'] for division in divisiones))
         cantidad_restante = transaccion_original.amount - cantidad_total_divisiones
 
         nuevas_transacciones = []
