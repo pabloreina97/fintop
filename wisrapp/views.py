@@ -30,6 +30,10 @@ class TransaccionViewSet(viewsets.ModelViewSet):
         transaccion_original = self.get_object()
         divisiones = request.data.get('divisiones')
 
+        cantidad_total_divisiones = sum(
+            division['amount'] for division in divisiones)
+        cantidad_restante = transaccion_original.amount - cantidad_total_divisiones
+
         nuevas_transacciones = []
         transaccion_data = model_to_dict(transaccion_original, exclude=[
                                          'id', 'amount', 'categoria'])
@@ -44,6 +48,18 @@ class TransaccionViewSet(viewsets.ModelViewSet):
                 nueva_transaccion = serializer.save()
                 nuevas_transacciones.append(nueva_transaccion)
             nuevas_transacciones.append(nueva_transaccion)
+
+        # Crear una transacción con el cantidad restante si es necesario
+        if cantidad_restante > 0:
+            transaccion_restante = {
+                'amount': cantidad_restante,
+                'categoria': transaccion_original.categoria,
+                # Copiar otros campos relevantes
+            }
+            serializer_restante = TransactionSerializer(
+                data=transaccion_restante)
+            if serializer_restante.is_valid(raise_exception=True):
+                nuevas_transacciones.append(serializer_restante.save())
 
         transaccion_original.delete()
 
