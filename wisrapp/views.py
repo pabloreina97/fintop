@@ -5,6 +5,8 @@ from .models import Categoria, SyncHistory, Transaction, UserToken
 from .serializers import CategoriaSerializer, SyncHistorySerializer, TransactionSerializer
 from django.db.models import Sum
 from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.forms.models import model_to_dict
 
 from django.shortcuts import redirect
 import requests
@@ -22,6 +24,31 @@ class CategoriaViewSet(viewsets.ModelViewSet):
 class TransaccionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
+
+    @action(detail=True, methods=['post'])
+    def dividir(self, request, pk=None):
+        transaccion_original = self.get_object()
+        divisiones = request.data.get('divisiones')
+
+        nuevas_transacciones = []
+        transaccion_data = model_to_dict(transaccion_original, exclude=[
+                                         'id', 'amount', 'categoria'])
+        for division in divisiones:
+            transaccion_data.update({
+                'amount': division['amount'],
+                'categoria': division['categoria']
+            })
+            # Crear una nueva transacción utilizando el serializador
+            serializer = TransactionSerializer(data=transaccion_data)
+            if serializer.is_valid(raise_exception=True):
+                nueva_transaccion = serializer.save()
+                nuevas_transacciones.append(nueva_transaccion)
+            nuevas_transacciones.append(nueva_transaccion)
+
+        transaccion_original.delete()
+
+        serializer = TransactionSerializer(nuevas_transacciones, many=True)
+        return Response(serializer.data)
 
 
 class AuthTruelayer(APIView):
@@ -252,7 +279,7 @@ class SyncTransactionsView(APIView):
             # Descripción > Importe
             if importe == -116.42:
                 return categorias_dict.get('Comunidad')
-            elif importe == -20 | -50:
+            elif importe == -20 | importe == -50:
                 return categorias_dict.get('Donativos')
             elif importe == -56.28:
                 return categorias_dict.get('Seguro coche')

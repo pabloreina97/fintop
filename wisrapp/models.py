@@ -19,6 +19,7 @@ class Categoria(models.Model):
 
 
 class Transaction(models.Model):
+    id = models.AutoField(primary_key=True)
     transaction_id = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.CharField(max_length=100)
