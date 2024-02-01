@@ -1,3 +1,6 @@
+from hmac import new
+
+from wisrapp.utils import flatten_json
 from .models import Categoria, SyncHistory, Transaction, UserToken
 from .serializers import CategoriaSerializer, SyncHistorySerializer, TransactionSerializer
 
@@ -252,7 +255,7 @@ class SyncTransactionsView(APIView):
         from_date = ((last_sync + timedelta(days=-3))
                      if last_sync else datetime(year=2024, month=1, day=1)).strftime(r'%Y-%m-%d')
         to_date = datetime.today().strftime(r'%Y-%m-%d')
-        print(f'from {from_date} to {to_date}')
+        print(f'Fechas de sincronización: {from_date} a {to_date}')
 
         # Hacer la petición a la API de TrueLayer para sincronizar las transacciones
         for account_id in accounts:
@@ -264,22 +267,39 @@ class SyncTransactionsView(APIView):
 
                 if response.status_code == 200:
                     transacciones_json = response.json().get('results')
-                    # Obtener todos los transaction_id existentes y filtra los nuevos
-                    existing_ids = set(Transaction.objects.filter(transaction_id__in=[
-                                       t['transaction_id'] for t in transacciones_json]).values_list('transaction_id', flat=True))
+                    # Aplanar JSON y eliminar campos no deseados
+                    for json_obj in transacciones_json:
+                        json_obj.pop('transaction_type', None)
+                        json_obj.pop('transaction_classification', None)
+                    transacciones_json = [flatten_json(
+                        json_obj) for json_obj in transacciones_json]
+                    # Filtrar transacciones no sincronizadas.
+                    past_transactions = set(Transaction.objects.filter(transaction_id__in=[
+                        d['transaction_id'] for d in transacciones_json]).values_list('transaction_id', flat=True))
                     new_transactions = [
-                        t for t in transacciones_json if t['transaction_id'] not in existing_ids]
-                    new_transactions_objs = [Transaction(
-                        **data) for data in new_transactions]
-                    # Usar bulk_create para insertar todos los nuevos de una vez
-                    Transaction.objects.bulk_create(new_transactions_objs)
-                    for data in new_transactions:
-                        transaction = Transaction.objects.get(
-                            transaction_id=data['transaction_id'])
-                        categoria = self.asignar_categoria(transaction)
-                        transaction.categoria = categoria
-                        transaction.save()
-                    return len(new_transactions), None
+                        d for d in transacciones_json if d['transaction_id'] not in past_transactions]
+                    # Cargar todas las categorías una vez al inicio del método para evitar múltiples consultas a la BD.
+                    all_categorias = Categoria.objects.all()
+
+                    print(
+                        f'Transacciones nuevas ({len(new_transactions)}): {new_transactions}')
+                    for transaccion in new_transactions:
+                        serializer = TransactionSerializer(data=transaccion)
+                        if serializer.is_valid():
+                            print('Serializador valido')
+                            # Guardar la instancia de la transacción para crearla en la base de datos
+                            transaccion = serializer.save()
+                            # Aplicar la función para asignar categoría
+                            categoria = self.asignar_categoria(
+                                transaccion, all_categorias)
+                            # Asignar la categoría a la transacción y guardar los cambios
+                            transaccion.categoria = categoria
+                            transaccion.save()
+                            # Contador de nuevas filas añadidas
+                            new_rows += 1
+                        else:
+                            print('Serializador no valido', serializer.errors)
+
                 else:
                     return new_rows, f"Error: {response.status_code}. Ha ocurrido un error al importar las transacciones de TrueLayer. Revisa el código de error."
             except Exception as e:
@@ -294,45 +314,9 @@ class SyncTransactionsView(APIView):
         else:
             return new_rows, "Error en la validación del serializer para el historial de sincronización."
 
-    def insertar_transacciones(self, transacciones_json):
-        # Obtener todos los transaction_id existentes y filtra los nuevos
-        existing_ids = set(Transaction.objects.filter(transaction_id__in=[
-                           t['transaction_id'] for t in transacciones_json]).values_list('transaction_id', flat=True))
-        new_transactions = [
-            t for t in transacciones_json if t['transaction_id'] not in existing_ids]
-        new_transactions_objs = [Transaction(
-            **data) for data in new_transactions]
-        # Usar bulk_create para insertar todos los nuevos de una vez
-        Transaction.objects.bulk_create(new_transactions_objs)
-        return new_transactions_objs.length()
-
-    def procesar_transaccion(self, transaccion):
-        serializer = TransactionSerializer(data=transaccion)
-        if serializer.is_valid():
-            transaction_id = serializer.validated_data['transaction_id']
-            # Usar get_or_create para eficiencia
-            transaccion_obj, created = Transaction.objects.get_or_create(
-                transaction_id=transaction_id,
-                defaults=serializer.validated_data
-            )
-            if created:
-                # Si se creó una nueva transacción, asignar categoría y guardar
-                categoria = self.asignar_categoria(transaccion_obj)
-                transaccion_obj.categoria = categoria
-                transaccion_obj.save()
-
-            return created
-        else:
-            # Manejar datos inválidos
-            print(
-                f'Error en función "procesar_transaccion": {serializer.errors}')
-            return False
-
-    def asignar_categoria(self, transaccion):
-        # Cargar todas las categorías una vez al inicio del método para evitar múltiples consultas a la BD.
-        all_categorias = Categoria.objects.all()
+    def asignar_categoria(self, transaccion, categorias):
         categorias_dict = {
-            categoria.nombre: categoria for categoria in all_categorias}
+            categoria.nombre: categoria for categoria in categorias}
 
         descripcion = transaccion.description.upper()
         importe = transaccion.amount
