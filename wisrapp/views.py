@@ -264,10 +264,22 @@ class SyncTransactionsView(APIView):
 
                 if response.status_code == 200:
                     transacciones_json = response.json().get('results')
-                    for transaccion in transacciones_json:
-                        added = self.procesar_transaccion(transaccion)
-                        if added:
-                            new_rows += 1
+                    # Obtener todos los transaction_id existentes y filtra los nuevos
+                    existing_ids = set(Transaction.objects.filter(transaction_id__in=[
+                                       t['transaction_id'] for t in transacciones_json]).values_list('transaction_id', flat=True))
+                    new_transactions = [
+                        t for t in transacciones_json if t['transaction_id'] not in existing_ids]
+                    new_transactions_objs = [Transaction(
+                        **data) for data in new_transactions]
+                    # Usar bulk_create para insertar todos los nuevos de una vez
+                    Transaction.objects.bulk_create(new_transactions_objs)
+                    for data in new_transactions:
+                        transaction = Transaction.objects.get(
+                            transaction_id=data['transaction_id'])
+                        categoria = self.asignar_categoria(transaction)
+                        transaction.categoria = categoria
+                        transaction.save()
+                    return len(new_transactions), None
                 else:
                     return new_rows, f"Error: {response.status_code}. Ha ocurrido un error al importar las transacciones de TrueLayer. Revisa el código de error."
             except Exception as e:
@@ -281,6 +293,18 @@ class SyncTransactionsView(APIView):
             return new_rows, None
         else:
             return new_rows, "Error en la validación del serializer para el historial de sincronización."
+
+    def insertar_transacciones(self, transacciones_json):
+        # Obtener todos los transaction_id existentes y filtra los nuevos
+        existing_ids = set(Transaction.objects.filter(transaction_id__in=[
+                           t['transaction_id'] for t in transacciones_json]).values_list('transaction_id', flat=True))
+        new_transactions = [
+            t for t in transacciones_json if t['transaction_id'] not in existing_ids]
+        new_transactions_objs = [Transaction(
+            **data) for data in new_transactions]
+        # Usar bulk_create para insertar todos los nuevos de una vez
+        Transaction.objects.bulk_create(new_transactions_objs)
+        return new_transactions_objs.length()
 
     def procesar_transaccion(self, transaccion):
         serializer = TransactionSerializer(data=transaccion)
