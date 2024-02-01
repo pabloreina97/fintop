@@ -328,7 +328,7 @@ class SyncTransactionsView(APIView):
             # Descripción > Importe
             if importe == -116.42:
                 return categorias_dict.get('Comunidad')
-            elif importe == -20 | importe == -50:
+            elif importe == -20.00 | importe == -50.00:
                 return categorias_dict.get('Donativos')
             elif importe == -56.28:
                 return categorias_dict.get('Seguro coche')
