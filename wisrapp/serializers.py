@@ -16,25 +16,40 @@ class MetaTransactionSerializer(serializers.Serializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
-    meta = MetaTransactionSerializer(
-        source='*')
+    categoria = serializers.PrimaryKeyRelatedField(
+        queryset=Categoria.objects.all(), allow_null=True, required=False)
 
     class Meta:
         model = Transaction
-        fields = [
-            'id',
-            'transaction_id',
-            'amount',
-            'description',
-            'merchant_name',
-            'currency',
-            'transaction_type',
-            'transaction_category',
-            'timestamp',
-            'meta',
-            'categoria',
-            'computable'
-        ]
+        fields = '__all__'
+
+    def create(self, validated_data):
+        print(f'Validated data: {validated_data}')
+        # Extraer y eliminar los datos meta anidados
+        meta_data = validated_data.pop('meta', {})
+        transaction = Transaction.objects.create(**validated_data)
+
+        # Asignar los campos meta del modelo Transaction
+        for field, value in meta_data.items():
+            if hasattr(transaction, field):
+                setattr(transaction, field, value)
+        transaction.save()
+        return transaction
+
+    def update(self, instance, validated_data):
+        meta_data = validated_data.pop('meta', {})
+
+        # Actualizar campos normales
+        for field, value in validated_data.items():
+            if hasattr(instance, field):
+                setattr(instance, field, value)
+
+        # Actualizar campos meta
+        for field, value in meta_data.items():
+            if hasattr(instance, field):
+                setattr(instance, field, value)
+        instance.save()
+        return instance
 
 
 class UserTokenSerializer(serializers.ModelSerializer):

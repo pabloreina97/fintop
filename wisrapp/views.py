@@ -1,17 +1,21 @@
-from rest_framework import viewsets
-from rest_framework.views import APIView
-from decimal import Decimal
 from .models import Categoria, SyncHistory, Transaction, UserToken
 from .serializers import CategoriaSerializer, SyncHistorySerializer, TransactionSerializer
-from django.db.models import Sum
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.forms.models import model_to_dict
 
+from django.db import transaction
+from django.db.models import Sum
+from django.forms.models import model_to_dict
 from django.shortcuts import redirect
-import requests
-import environ
+
+from rest_framework import status
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from datetime import datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
+import environ
+import requests
 
 env = environ.Env()
 
@@ -30,38 +34,56 @@ class TransaccionViewSet(viewsets.ModelViewSet):
         transaccion_original = self.get_object()
         divisiones = request.data.get('divisiones')
 
-        cantidad_total_divisiones = Decimal(sum(
-            division['amount'] for division in divisiones))
+        cantidad_total_divisiones = Decimal(
+            sum(division['amount'] for division in divisiones))
+
+        cantidad_total_divisiones = cantidad_total_divisiones.quantize(
+            Decimal('.01'), rounding=ROUND_HALF_UP)
+
         cantidad_restante = transaccion_original.amount - cantidad_total_divisiones
+
+        print(f'Cantidad original: {transaccion_original.amount}')
+        print(f'Cantidad total división: {cantidad_total_divisiones}')
+        print(f'Cantidad restante: {cantidad_restante}')
+
+        if abs(cantidad_total_divisiones) > abs(transaccion_original.amount):
+            return Response({'error': 'La suma de las divisiones excede la cantidad original.'}, status=status.HTTP_400_BAD_REQUEST)
 
         nuevas_transacciones = []
         transaccion_data = model_to_dict(transaccion_original, exclude=[
                                          'id', 'amount', 'categoria'])
-        for division in divisiones:
-            transaccion_data.update({
-                'amount': division['amount'],
-                'categoria': division['categoria']
-            })
-            # Crear una nueva transacción utilizando el serializador
-            serializer = TransactionSerializer(data=transaccion_data)
-            if serializer.is_valid(raise_exception=True):
-                nueva_transaccion = serializer.save()
-                nuevas_transacciones.append(nueva_transaccion)
-            nuevas_transacciones.append(nueva_transaccion)
 
-        # Crear una transacción con el cantidad restante si es necesario
-        if cantidad_restante > 0:
-            transaccion_restante = {
-                'amount': cantidad_restante,
-                'categoria': transaccion_original.categoria,
-                # Copiar otros campos relevantes
-            }
-            serializer_restante = TransactionSerializer(
-                data=transaccion_restante)
-            if serializer_restante.is_valid(raise_exception=True):
-                nuevas_transacciones.append(serializer_restante.save())
+        with transaction.atomic():
+            # Crear nuevas transacciones para las divisiones
+            for division in divisiones:
+                amount = division['amount']
+                categoria_id = division['categoria']
 
-        transaccion_original.delete()
+                # Preparar los datos para la nueva transacción
+                transaccion_data = {
+                    **model_to_dict(transaccion_original, exclude=['id', 'categoria', 'amount']),
+                    'amount': amount,
+                    'categoria': categoria_id
+                }
+                print(transaccion_data)
+
+                serializer = TransactionSerializer(data=transaccion_data)
+                if serializer.is_valid(raise_exception=True):
+                    nueva_transaccion = serializer.save()
+                    nuevas_transacciones.append(nueva_transaccion)
+
+            # Crear una transacción para la cantidad restante
+            if abs(cantidad_restante) > 0:
+                transaccion_data.update({
+                    'amount': cantidad_restante,
+                    'categoria': transaccion_original.categoria.id if transaccion_original.categoria else None
+                })
+                serializer_restante = TransactionSerializer(
+                    data=transaccion_data)
+                if serializer_restante.is_valid(raise_exception=True):
+                    nuevas_transacciones.append(serializer_restante.save())
+
+            transaccion_original.delete()
 
         serializer = TransactionSerializer(nuevas_transacciones, many=True)
         return Response(serializer.data)
@@ -263,16 +285,19 @@ class SyncTransactionsView(APIView):
     def procesar_transaccion(self, transaccion):
         serializer = TransactionSerializer(data=transaccion)
         if serializer.is_valid():
-            # Verificar si la transacción ya existe
-            transaction_id = serializer.validated_data.get('transaction_id')
-            # TODO: Esto se puede hacer más eficiente:
-            if not Transaction.objects.filter(transaction_id=transaction_id).exists():
-                transaccion = serializer.save()
-                categoria = self.asignar_categoria(transaccion)
-                transaccion.categoria = categoria
-                transaccion.save()
-                return True
-            return False
+            transaction_id = serializer.validated_data['transaction_id']
+            # Usar get_or_create para eficiencia
+            transaccion_obj, created = Transaction.objects.get_or_create(
+                transaction_id=transaction_id,
+                defaults=serializer.validated_data
+            )
+            if created:
+                # Si se creó una nueva transacción, asignar categoría y guardar
+                categoria = self.asignar_categoria(transaccion_obj)
+                transaccion_obj.categoria = categoria
+                transaccion_obj.save()
+
+            return created
         else:
             # Manejar datos inválidos
             print(
