@@ -16,8 +16,7 @@ class MetaTransactionSerializer(serializers.Serializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
-    categoria = serializers.PrimaryKeyRelatedField(
-        queryset=Categoria.objects.all(), allow_null=True, required=False)
+    categoria = serializers.CategoriaSerializer(read_only=True)
 
     class Meta:
         model = Transaction
