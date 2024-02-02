@@ -16,7 +16,7 @@ class MetaTransactionSerializer(serializers.Serializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
-    categoria = serializers.CategoriaSerializer(read_only=True)
+    categoria = CategoriaSerializer(read_only=True)
 
     class Meta:
         model = Transaction
