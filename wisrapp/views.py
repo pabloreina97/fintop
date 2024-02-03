@@ -347,7 +347,7 @@ class SyncTransactionsView(APIView):
             'Hogar': ['ZARA HOME', 'LEROY'],
             'Ropa': ['ZARA', 'ALVARO MORENO', 'SILBON', 'OYSHO', 'MANGO', 'VINTED'],
             'Supermercado': ['MERCADONA', 'DEZA', 'ALCASH'],
-            'Combustible': ['REPSOL'],
+            'Combustible': ['REPSOL', 'PETROIL'],
             'Regalos': ['PUENTECILLO'],
             'Electricidad': ['NATURGY'],
             'Gas': ['NATURGY'],
