@@ -1,12 +1,12 @@
 from celery import shared_task
 
-from wisrapp.views import SyncTransactionsView
+from wisrapp.views import AuthRefresh, SyncTransactionsView
 
 
 @shared_task
 def sync_transactions():
-    vista = SyncTransactionsView()
-    vista.get()
+    AuthRefresh.get()
+    SyncTransactionsView().get()
     print("Transacciones sincronizadas")
 
 

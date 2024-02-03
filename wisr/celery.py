@@ -19,6 +19,7 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 app.conf.beat_schedule = {
     'sync-daily': {
         'task': 'wisr.tasks.sync_transactions',
-        'schedule': crontab(hour=13, minute=10),  # Ejecuta a las 03:00
+        'schedule': 300.0
+        # 'schedule': crontab()
     },
 }
