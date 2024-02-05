@@ -1,7 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
-from django.conf import settings
 from celery.schedules import crontab
 
 # Set the default Django settings module for the 'celery' program.
@@ -27,7 +26,7 @@ def debug_task(self):
 # Programar tareas periódicas
 app.conf.beat_schedule = {
     'sync-daily': {
-        'task': 'wisr.tasks.sync_transactions',
+        'task': 'wisrapp.tasks.sync_transactions',
         'schedule': 300.0
         # 'schedule': crontab()
     },
