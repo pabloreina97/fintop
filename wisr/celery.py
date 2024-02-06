@@ -27,7 +27,7 @@ def debug_task(self):
 app.conf.beat_schedule = {
     'sync-daily': {
         'task': 'wisrapp.tasks.sync_transactions',
-        'schedule': 300.0
-        # 'schedule': crontab()
+        # 'schedule': 300.0
+        'schedule': crontab(hour=2)
     },
 }
