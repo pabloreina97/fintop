@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from decimal import Decimal
 import requests
 from wisrapp.models import Categoria, SyncHistory, Transaction, UserToken
 from wisrapp.serializers import SyncHistorySerializer, TransactionSerializer
@@ -125,11 +126,11 @@ class SyncManager:
 
         if 'PAGO' in descripcion:  # TODO: Esto no esta funcionando bien
             # Descripción > Importe
-            if importe == -116.42:
+            if importe == Decimal(-116.42):
                 return categorias_dict.get('Comunidad')
-            elif importe == -20.00 | importe == -50.00:
+            elif importe == Decimal(-20.00) | importe == Decimal(-50.00):
                 return categorias_dict.get('Donativos')
-            elif importe == -56.28:
+            elif importe == Decimal(-56.28):
                 return categorias_dict.get('Seguro coche')
 
         # Destinatario
