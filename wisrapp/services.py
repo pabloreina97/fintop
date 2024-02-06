@@ -128,7 +128,7 @@ class SyncManager:
             # Descripción > Importe
             if importe == Decimal(-116.42):
                 return categorias_dict.get('Comunidad')
-            elif importe == Decimal(-20.00) | importe == Decimal(-50.00):
+            elif importe == Decimal(-20.00) or importe == Decimal(-50.00):
                 return categorias_dict.get('Donativos')
             elif importe == Decimal(-56.28):
                 return categorias_dict.get('Seguro coche')
