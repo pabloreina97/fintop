@@ -28,6 +28,6 @@ app.conf.beat_schedule = {
     'sync-daily': {
         'task': 'wisrapp.tasks.sync_transactions',
         # 'schedule': 300.0
-        'schedule': crontab(hour=2)
+        'schedule': crontab(hour='*/6', minute=0)
     },
 }
